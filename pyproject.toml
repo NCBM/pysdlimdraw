@@ -12,6 +12,7 @@ readme = "README.md"
 
 [project.optional-dependencies]
 bundlelib = ["pysdl2-dll>=2.30.2"]
+pil = ["Pillow~=10.0"]
 
 [project.urls]
 Homepage = "https://github.com/NCBM/pysdlimdraw"
