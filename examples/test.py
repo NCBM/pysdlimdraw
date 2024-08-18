@@ -33,7 +33,7 @@ sid.renderer.present()
 
 t3 = perf_counter()
 
-sid.save("test.png", ImageFormat.PNG, overwrite=True)
+sid.save("test.jpg", ImageFormat.JPG, overwrite=True)
 
 t4 = perf_counter()
 
