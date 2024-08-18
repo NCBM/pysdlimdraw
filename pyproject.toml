@@ -1,19 +1,21 @@
 [project]
-# name = "Project name..."
-# version = "Project version, e.g. 0.0.1"
-# description = "Project description..."
-# authors = [
-#     {name = "Author name", email = "Author email"},
-#     ...
-# ]
-# license = {text = "Project license on PyPI, e.g. MIT"}
-# dependencies = ["dependency1...", "dependency2...", ...]
-# requires-python = ">=3.9"
+name = "pysdlimdraw"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "HivertMoZara", email = "worldmozara@163.com"},
+]
+license = {text = "MIT"}
+dependencies = ["PySDL2~=0.9.16"]
+requires-python = ">=3.9"
 readme = "README.md"
 
+[project.optional-dependencies]
+bundlelib = ["pysdl2-dll>=2.30.2"]
+
 [project.urls]
-# Homepage = "https://github.com/..."
-# Repository = "https://github.com/..."
+Homepage = "https://github.com/NCBM/pysdlimdraw"
+Repository = "https://github.com/NCBM/pysdlimdraw"
 
 [tool.pyright]
 pythonVersion = "3.9"
