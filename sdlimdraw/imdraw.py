@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from ctypes import create_string_buffer
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Union, overload
+from typing import TYPE_CHECKING, Literal, Optional, Union, overload
 
 import sdl2
 import sdl2.ext
@@ -24,9 +24,6 @@ class ImageFormat(Enum):
 
 
 class BaseImDraw(ABC):
-    if TYPE_CHECKING:
-        from ctypes import _Pointer
-        surface: _Pointer[sdl2.SDL_Surface]
     renderer: sdl2.ext.Renderer
 
     @abstractmethod
@@ -34,67 +31,65 @@ class BaseImDraw(ABC):
         raise NotImplementedError
     
     @overload
+    @abstractmethod
     def save(
         self, filename: Union[str, Path],
-        format_: Literal[ImageFormat.JPG] = ImageFormat.JPG,
+        format_: Literal[ImageFormat.JPG],
         overwrite: bool = False,
         *,
-        jpg_quality: int = 90,
-        _surface=None
+        jpg_quality: int = 90
     ):
         ...
     
     @overload
+    @abstractmethod
     def save(
         self, filename: Union[str, Path],
         format_: Literal[ImageFormat.PNG, ImageFormat.BMP] = ImageFormat.PNG,
-        overwrite: bool = False,
-        *,
-        _surface=None
+        overwrite: bool = False
     ):
         ...
 
-    @overload
+    @abstractmethod
     def save(
         self, filename: Union[str, Path],
         format_: ImageFormat = ImageFormat.PNG,
         overwrite: bool = False,
         *,
-        jpg_quality: int = 90,
-        _surface=None
+        jpg_quality: int = 90
     ):
-        ...
+        raise NotImplementedError
     
-    def save(
-        self, filename: Union[str, Path],
+    @staticmethod
+    def _save(
+        filename: Union[str, Path],
         format_: ImageFormat = ImageFormat.PNG,
         overwrite: bool = False,
         *,
         jpg_quality: int = 90,
         _surface=None
     ):
-        surf = self.surface if _surface is None else _surface
+        surf = _surface
+        if os.path.exists(filename) and not overwrite:
+            raise RuntimeError(
+                f"file '{filename!s}' already exists. "
+                "use overwrite=True if needed."
+            )
         if format_ == ImageFormat.PNG:
-            if os.path.exists(filename) and not overwrite:
-                raise RuntimeError(
-                    f"file '{filename!s}' already exists. "
-                    "use overwrite=True if needed."
-                )
             sdlimage.IMG_SavePNG(surf, str(filename).encode(ENCODING))
         elif format_ == ImageFormat.BMP:
-            sdl2.ext.save_bmp(surf, str(filename), overwrite)
+            sdl2.SDL_SaveBMP(surf, str(filename).encode(ENCODING))
         elif format_ == ImageFormat.JPG:
-            if os.path.exists(filename) and not overwrite:
-                raise RuntimeError(
-                    f"file '{filename!s}' already exists. "
-                    "use overwrite=True if needed."
-                )
             sdlimage.IMG_SaveJPG(
                 surf, str(filename).encode(ENCODING), jpg_quality
             )
 
 
 class SoftwareImDraw(BaseImDraw):
+    if TYPE_CHECKING:
+        from ctypes import _Pointer
+        surface: _Pointer[sdl2.SDL_Surface]
+
     def __init__(self, root) -> None:
         self.surface = root
         self.renderer = sdl2.ext.Renderer(root)
@@ -116,13 +111,21 @@ class SoftwareImDraw(BaseImDraw):
     @classmethod
     def from_pil_image(cls, img: "PILImage"):
         return cls(sdl2.ext.pillow_to_surface(img))
+    
+    def save(
+        self, filename: Union[str, Path],
+        format_: ImageFormat = ImageFormat.PNG,
+        overwrite: bool = False,
+        *,
+        jpg_quality: int = 90
+    ):
+        super()._save(filename, format_, overwrite, jpg_quality=jpg_quality, _surface=self.surface)
 
 
 class WindowImDraw(BaseImDraw):
     def __init__(self, root: sdl2.ext.Window):
         self.window = root
         self.renderer = sdl2.ext.Renderer(root)
-        self.surface = sdl2.SDL_CreateRGBSurface
 
     @classmethod
     def new(cls, width: int, height: int):
@@ -137,7 +140,7 @@ class WindowImDraw(BaseImDraw):
         )
 
     @contextmanager
-    def freeze_surface(self):
+    def copy_surface(self):
         w, h = self.window.size
         assert isinstance(w, int) and isinstance(h, int)
         pitch = sdl2.SDL_BYTESPERPIXEL(sdl2.SDL_PIXELFORMAT_ARGB8888) * w
@@ -161,8 +164,7 @@ class WindowImDraw(BaseImDraw):
         format_: ImageFormat = ImageFormat.PNG,
         overwrite: bool = False,
         *,
-        jpg_quality: int = 90,
-        _surface=None
+        jpg_quality: int = 90
     ):
-        with self.freeze_surface() as surf:
-            super().save(filename, format_, overwrite, jpg_quality=jpg_quality, _surface=surf)
+        with self.copy_surface() as surf:
+            super()._save(filename, format_, overwrite, jpg_quality=jpg_quality, _surface=surf)
