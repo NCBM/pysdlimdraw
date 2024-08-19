@@ -65,13 +65,15 @@ class BaseImDraw(ABC):
     def line(
         self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None
     ):
-        self.renderer.draw_line(points, color)
+        if points:
+            self.renderer.draw_line(points, color)
         return self
 
     def point(
         self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None
     ):
-        self.renderer.draw_point(points, color)
+        if points:
+            self.renderer.draw_point(points, color)
         return self
 
     def rect(
@@ -79,6 +81,8 @@ class BaseImDraw(ABC):
         *rects: tuple[float, float, float, float],
         color: Optional[sdl2.ext.Color] = None
     ):
+        if not rects:
+            rects = ((0, 0, self.width, self.height),)
         self.renderer.draw_rect(rects, color)
         return self
 
@@ -156,10 +160,7 @@ class WindowImDraw(BaseImDraw):
         return cls(
             sdl2.ext.Window(
                 "sdlimdraw", (width, height),
-                flags=(
-                    sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_BORDERLESS
-                    | sdl2.SDL_WINDOW_OPENGL
-                )
+                flags=sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_BORDERLESS
             ),
             width, height
         )
