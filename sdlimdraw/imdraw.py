@@ -84,6 +84,30 @@ class BaseImDraw(ABC):
                 surf, str(filename).encode(ENCODING), jpg_quality
             )
 
+    def present(self):
+        self.renderer.present()
+        return self
+
+    def setcolor(self, color: sdl2.ext.Color):
+        self.renderer.color = color
+        return self
+
+    def line(self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None):
+        self.renderer.draw_line(points, color)
+        return self
+    
+    def point(self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None):
+        self.renderer.draw_point(points, color)
+        return self
+    
+    def rect(self, *rects: tuple[float, float, float, float], color: Optional[sdl2.ext.Color] = None):
+        self.renderer.draw_rect(rects, color)
+        return self
+    
+    def fill(self, *rects: tuple[float, float, float, float], color: Optional[sdl2.ext.Color] = None):
+        self.renderer.fill(rects, color)
+        return self
+
 
 class SoftwareImDraw(BaseImDraw):
     if TYPE_CHECKING:
@@ -138,6 +162,15 @@ class WindowImDraw(BaseImDraw):
                 )
             )
         )
+
+    @classmethod
+    def from_pil_image(cls, img: "PILImage"):
+        imd = cls.new(img.width, img.height)
+        surf = sdl2.ext.pillow_to_surface(img)
+        tex = sdl2.ext.Texture(imd.renderer, surf)
+        imd.renderer.copy(tex)
+        sdl2.SDL_FreeSurface(surf)
+        return imd
 
     @contextmanager
     def copy_surface(self):
