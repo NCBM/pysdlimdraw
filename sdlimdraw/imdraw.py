@@ -156,12 +156,13 @@ class WindowImDraw(BaseImDraw):
         self.height = height
 
     @classmethod
-    def new(cls, width: int, height: int):
+    def new(
+        cls, width: int, height: int,
+        *,
+        flags: int = sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_BORDERLESS
+    ):
         return cls(
-            sdl2.ext.Window(
-                "sdlimdraw", (width, height),
-                flags=sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_BORDERLESS
-            ),
+            sdl2.ext.Window("sdlimdraw", (width, height), flags=flags),
             width, height
         )
 
