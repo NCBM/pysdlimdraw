@@ -1,35 +1,27 @@
-import locale
-import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from ctypes import create_string_buffer
-from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Optional, Union, overload
+from typing import TYPE_CHECKING, Literal, Optional, Sequence, Union, overload
 
 import sdl2
 import sdl2.ext
-from sdl2 import sdlimage
+
+from .imfile import ImageFormat, load_pil_image, save_surface
 
 if TYPE_CHECKING:
     from PIL.Image import Image as PILImage
 
-ENCODING = locale.getpreferredencoding(False)
-
-
-class ImageFormat(Enum):
-    JPG = auto()
-    PNG = auto()
-    BMP = auto()
-
 
 class BaseImDraw(ABC):
     renderer: sdl2.ext.Renderer
+    width: int
+    height: int
 
     @abstractmethod
-    def __init__(self, root):
+    def __init__(self, root, width: int, height: int):
         raise NotImplementedError
-    
+
     @overload
     @abstractmethod
     def save(
@@ -59,30 +51,6 @@ class BaseImDraw(ABC):
         jpg_quality: int = 90
     ):
         raise NotImplementedError
-    
-    @staticmethod
-    def _save(
-        filename: Union[str, Path],
-        format_: ImageFormat = ImageFormat.PNG,
-        overwrite: bool = False,
-        *,
-        jpg_quality: int = 90,
-        _surface=None
-    ):
-        surf = _surface
-        if os.path.exists(filename) and not overwrite:
-            raise RuntimeError(
-                f"file '{filename!s}' already exists. "
-                "use overwrite=True if needed."
-            )
-        if format_ == ImageFormat.PNG:
-            sdlimage.IMG_SavePNG(surf, str(filename).encode(ENCODING))
-        elif format_ == ImageFormat.BMP:
-            sdl2.SDL_SaveBMP(surf, str(filename).encode(ENCODING))
-        elif format_ == ImageFormat.JPG:
-            sdlimage.IMG_SaveJPG(
-                surf, str(filename).encode(ENCODING), jpg_quality
-            )
 
     def present(self):
         self.renderer.present()
@@ -92,19 +60,33 @@ class BaseImDraw(ABC):
         self.renderer.color = color
         return self
 
-    def line(self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None):
+    def line(
+        self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None
+    ):
         self.renderer.draw_line(points, color)
         return self
-    
-    def point(self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None):
+
+    def point(
+        self, *points: tuple[float, float], color: Optional[sdl2.ext.Color] = None
+    ):
         self.renderer.draw_point(points, color)
         return self
-    
-    def rect(self, *rects: tuple[float, float, float, float], color: Optional[sdl2.ext.Color] = None):
+
+    def rect(
+        self,
+        *rects: tuple[float, float, float, float],
+        color: Optional[sdl2.ext.Color] = None
+    ):
         self.renderer.draw_rect(rects, color)
         return self
-    
-    def fill(self, *rects: tuple[float, float, float, float], color: Optional[sdl2.ext.Color] = None):
+
+    def fill(
+        self,
+        *rects: tuple[float, float, float, float],
+        color: Optional[sdl2.ext.Color] = None
+    ):
+        if not rects:
+            rects = ((0, 0, self.width, self.height),)
         self.renderer.fill(rects, color)
         return self
 
@@ -114,9 +96,11 @@ class SoftwareImDraw(BaseImDraw):
         from ctypes import _Pointer
         surface: _Pointer[sdl2.SDL_Surface]
 
-    def __init__(self, root) -> None:
+    def __init__(self, root, width: int, height: int) -> None:
         self.surface = root
         self.renderer = sdl2.ext.Renderer(root)
+        self.width = width
+        self.height = height
 
     def __del__(self):
         sdl2.SDL_FreeSurface(self.surface)
@@ -129,12 +113,13 @@ class SoftwareImDraw(BaseImDraw):
         return cls(
             sdl2.SDL_CreateRGBSurface(
                 0, width, height, depth, Rmask, Gmask, Bmask, Amask
-            )
+            ),
+            width, height
         )
 
     @classmethod
     def from_pil_image(cls, img: "PILImage"):
-        return cls(sdl2.ext.pillow_to_surface(img))
+        return cls(load_pil_image(img), img.width, img.height)
     
     def save(
         self, filename: Union[str, Path],
@@ -143,13 +128,17 @@ class SoftwareImDraw(BaseImDraw):
         *,
         jpg_quality: int = 90
     ):
-        super()._save(filename, format_, overwrite, jpg_quality=jpg_quality, _surface=self.surface)
+        save_surface(
+            self.surface, filename, format_, overwrite, jpg_quality=jpg_quality
+        )
 
 
 class WindowImDraw(BaseImDraw):
-    def __init__(self, root: sdl2.ext.Window):
+    def __init__(self, root: sdl2.ext.Window, width: int, height: int):
         self.window = root
         self.renderer = sdl2.ext.Renderer(root)
+        self.width = width
+        self.height = height
 
     @classmethod
     def new(cls, width: int, height: int):
@@ -160,7 +149,8 @@ class WindowImDraw(BaseImDraw):
                     sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_BORDERLESS
                     | sdl2.SDL_WINDOW_OPENGL
                 )
-            )
+            ),
+            width, height
         )
 
     @classmethod
@@ -200,4 +190,6 @@ class WindowImDraw(BaseImDraw):
         jpg_quality: int = 90
     ):
         with self.copy_surface() as surf:
-            super()._save(filename, format_, overwrite, jpg_quality=jpg_quality, _surface=surf)
+            save_surface(
+                surf, filename, format_, overwrite, jpg_quality=jpg_quality
+            )

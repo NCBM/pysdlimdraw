@@ -3,11 +3,14 @@ from time import perf_counter
 
 import sdl2.ext
 
-from sdlimdraw import SoftwareImDraw, WindowImDraw
+import sdlimdraw
+from sdlimdraw import SoftwareImDraw, WindowImDraw  # noqa: F401
 from sdlimdraw.imdraw import ImageFormat
 
 WIDTH = 2048 * 4
 HEIGHT = 1600 * 4
+
+sdlimdraw.init_sdl()
 
 t0 = perf_counter()
 
