@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Literal, Optional, Sequence, Union, overload
 import sdl2
 import sdl2.ext
 
+from sdlimdraw.sdlext import render_geometry
+
 from .imfile import ImageFormat, load_pil_image, save_surface
 
 if TYPE_CHECKING:
@@ -88,6 +90,15 @@ class BaseImDraw(ABC):
         if not rects:
             rects = ((0, 0, self.width, self.height),)
         self.renderer.fill(rects, color)
+        return self
+
+    def geometry(
+        self,
+        tex: sdl2.ext.Texture,
+        *verts: sdl2.SDL_Vertex,
+        indices: Optional[Sequence[int]] = None
+    ):
+        render_geometry(self.renderer, tex, *verts, indices=indices)
         return self
 
 
