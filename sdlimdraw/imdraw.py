@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING, Literal, Optional, Sequence, Union, overload
 import sdl2
 import sdl2.ext
 
-from sdlimdraw.sdlext import render_geometry
+from sdlimdraw.sdlext import (
+    render_circle,
+    render_circle_aa,
+    render_circle_aa_fast,
+    render_geometry,
+)
 
 from .imfile import ImageFormat, load_pil_image, save_surface
 
@@ -104,6 +109,22 @@ class BaseImDraw(ABC):
     ):
         render_geometry(self.renderer, tex, *verts, indices=indices)
         return self
+
+    def circle(
+        self,
+        center: tuple[int, int],
+        r: int,
+        color: Optional[sdl2.ext.Color] = None,
+        aa: Literal["no", "fast", "fancy"] = "no"
+    ):
+        if aa == "no":
+            render_circle(self.renderer, center, r, color)
+        elif aa == "fast":
+            render_circle_aa_fast(self.renderer, center, r, color)
+        elif aa == "fancy":
+            render_circle_aa(self.renderer, center, r, color)
+        else:
+            raise ValueError("anti-aliasing mode can only be set 'no', 'fast' or 'fancy'.")
 
 
 class SoftwareImDraw(BaseImDraw):
