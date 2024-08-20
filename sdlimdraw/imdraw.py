@@ -125,6 +125,7 @@ class BaseImDraw(ABC):
             render_circle_aa(self.renderer, center, r, color)
         else:
             raise ValueError("anti-aliasing mode can only be set 'no', 'fast' or 'fancy'.")
+        return self
 
 
 class SoftwareImDraw(BaseImDraw):
