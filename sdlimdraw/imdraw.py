@@ -107,28 +107,46 @@ class BaseImDraw(ABC):
         *verts: sdl2.SDL_Vertex,
         indices: Optional[Sequence[int]] = None
     ):
+        """Draw a geometry of specified vertices.
+        
+        Note: Geometry rendering typically performs better with hardware acceleration.
+        """
         render_geometry(self.renderer, tex, *verts, indices=indices)
         return self
 
     def circle(
         self,
         center: tuple[int, int],
-        r: int,
+        radius: int,
         color: Optional[sdl2.ext.Color] = None,
         aa: Literal["no", "fast", "fancy"] = "no"
     ):
+        """Draw a circle with specified center and radius.
+
+        Parameters:
+        - center: the center point (x, y) of the circle.
+        - radius: the radius of the circle.
+        - color: the color of the circle.
+        - aa: anti-aliasing mode, can be set 'no', 'fast' or 'fancy'.
+        """
         if aa == "no":
-            render_circle(self.renderer, center, r, color)
+            render_circle(self.renderer, center, radius, color)
         elif aa == "fast":
-            render_circle_aa_fast(self.renderer, center, r, color)
+            render_circle_aa_fast(self.renderer, center, radius, color)
         elif aa == "fancy":
-            render_circle_aa(self.renderer, center, r, color)
+            render_circle_aa(self.renderer, center, radius, color)
         else:
             raise ValueError("anti-aliasing mode can only be set 'no', 'fast' or 'fancy'.")
         return self
 
 
 class SoftwareImDraw(BaseImDraw):
+    """Surface-based image draw.
+
+    Available in headless runtime.
+
+    Hardware acceleration is not available.
+    """
     if TYPE_CHECKING:
         from ctypes import _Pointer
         surface: _Pointer[sdl2.SDL_Surface]
@@ -171,6 +189,12 @@ class SoftwareImDraw(BaseImDraw):
 
 
 class WindowImDraw(BaseImDraw):
+    """Window-based image draw.
+
+    Unavailable in headless runtime.
+
+    Hardware acceleration can work if possible.
+    """
     def __init__(self, root: sdl2.ext.Window, width: int, height: int):
         self.window = root
         self.renderer = sdl2.ext.Renderer(root)
